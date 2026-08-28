@@ -1,0 +1,11 @@
+### CUST001
+GET http://localhost:8080/api/rewards/CUST001
+Accept: application/json
+
+### CUST002
+GET http://localhost:8080/api/rewards/CUST002
+Accept: application/json
+
+### Unknown customer
+GET http://localhost:8080/api/rewards/UNKNOWN
+Accept: application/json
