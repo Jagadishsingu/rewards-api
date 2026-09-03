@@ -12,19 +12,6 @@ import java.time.Instant;
 @RestControllerAdvice
 public class GlobalExceptionHandler {
 
-    @ExceptionHandler(CustomerNotFoundException.class)
-    public ResponseEntity<ApiError> handleCustomerNotFound(
-            CustomerNotFoundException exception,
-            HttpServletRequest request) {
-
-        return buildResponse(
-                HttpStatus.NOT_FOUND,
-                "Customer not found",
-                exception.getMessage(),
-                request
-        );
-    }
-
     @ExceptionHandler(Exception.class)
     public ResponseEntity<ApiError> handleUnexpectedException(
             Exception exception,

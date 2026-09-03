@@ -26,13 +26,20 @@ public class RewardServiceImpl implements RewardService {
         this.rewardCalculator = rewardCalculator;
     }
 
+    /**
+     * Returns the monthly reward totals for a customer.
+     *
+     * A customer without any transactions is treated as having zero reward activity,
+     * not as an unknown customer. This avoids misleading 404 responses for valid
+     * customers with no recorded spending yet.
+     */
     @Override
     public RewardResponse getRewards(String customerId) {
         List<Transaction> transactions =
                 transactionRepository.findByCustomerIdOrderByTransactionDateAsc(customerId);
 
         if (transactions.isEmpty()) {
-            throw new CustomerNotFoundException(customerId);
+            return new RewardResponse(customerId, List.of(), 0L);
         }
 
         Map<java.time.YearMonth, Long> pointsByMonth = new LinkedHashMap<>();

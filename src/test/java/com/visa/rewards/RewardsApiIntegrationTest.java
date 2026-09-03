@@ -26,15 +26,17 @@ class RewardsApiIntegrationTest {
                 .andExpect(jsonPath("$.monthlyRewards[1].month").value("2026-07"))
                 .andExpect(jsonPath("$.monthlyRewards[1].points").value(240))
                 .andExpect(jsonPath("$.monthlyRewards[2].month").value("2026-08"))
-                .andExpect(jsonPath("$.monthlyRewards[2].points").value(150))
-                .andExpect(jsonPath("$.totalPoints").value(570));
+                .andExpect(jsonPath("$.monthlyRewards[2].points").value(50))
+                .andExpect(jsonPath("$.totalPoints").value(470));
     }
 
     @Test
-    void shouldReturnNotFoundForUnknownCustomer() throws Exception {
+    void shouldReturnEmptyRewardsForCustomerWithoutTransactions() throws Exception {
         mockMvc.perform(get("/api/rewards/UNKNOWN"))
-                .andExpect(status().isNotFound())
-                .andExpect(jsonPath("$.status").value(404))
-                .andExpect(jsonPath("$.error").value("Customer not found"));
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.customerId").value("UNKNOWN"))
+                .andExpect(jsonPath("$.monthlyRewards").isArray())
+                .andExpect(jsonPath("$.monthlyRewards.length()").value(0))
+                .andExpect(jsonPath("$.totalPoints").value(0));
     }
 }

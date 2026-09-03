@@ -52,10 +52,10 @@ Example response:
     },
     {
       "month": "2026-08",
-      "points": 150
+      "points": 50
     }
   ],
-  "totalPoints": 570
+  "totalPoints": 470
 }
 ```
 

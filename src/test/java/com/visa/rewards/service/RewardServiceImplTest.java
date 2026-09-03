@@ -49,13 +49,14 @@ class RewardServiceImplTest {
     }
 
     @Test
-    void shouldRejectUnknownCustomer() {
+    void shouldReturnEmptyRewardsForCustomerWithoutTransactions() {
         when(repository.findByCustomerIdOrderByTransactionDateAsc("UNKNOWN"))
                 .thenReturn(List.of());
 
-        assertThrows(
-                com.visa.rewards.exception.CustomerNotFoundException.class,
-                () -> service.getRewards("UNKNOWN")
-        );
+        RewardResponse response = service.getRewards("UNKNOWN");
+
+        assertEquals("UNKNOWN", response.customerId());
+        assertEquals(0, response.monthlyRewards().size());
+        assertEquals(0, response.totalPoints());
     }
 }
