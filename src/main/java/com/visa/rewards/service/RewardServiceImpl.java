@@ -2,12 +2,13 @@ package com.visa.rewards.service;
 
 import com.visa.rewards.dto.MonthlyReward;
 import com.visa.rewards.dto.RewardResponse;
-import com.visa.rewards.exception.CustomerNotFoundException;
 import com.visa.rewards.model.Transaction;
 import com.visa.rewards.repository.TransactionRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.math.BigDecimal;
+import java.time.YearMonth;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -30,8 +31,8 @@ public class RewardServiceImpl implements RewardService {
      * Returns the monthly reward totals for a customer.
      *
      * A customer without any transactions is treated as having zero reward activity,
-     * not as an unknown customer. This avoids misleading 404 responses for valid
-     * customers with no recorded spending yet.
+     * which keeps the API response consistent and avoids misclassifying a valid
+     * customer as missing.
      */
     @Override
     public RewardResponse getRewards(String customerId) {
@@ -39,15 +40,15 @@ public class RewardServiceImpl implements RewardService {
                 transactionRepository.findByCustomerIdOrderByTransactionDateAsc(customerId);
 
         if (transactions.isEmpty()) {
-            return new RewardResponse(customerId, List.of(), 0L);
+            return new RewardResponse(customerId, List.of(), BigDecimal.ZERO);
         }
 
-        Map<java.time.YearMonth, Long> pointsByMonth = new LinkedHashMap<>();
+        Map<YearMonth, BigDecimal> pointsByMonth = new LinkedHashMap<>();
 
         for (Transaction transaction : transactions) {
-            var month = java.time.YearMonth.from(transaction.getTransactionDate());
-            long points = rewardCalculator.calculate(transaction.getAmount());
-            pointsByMonth.merge(month, points, Long::sum);
+            YearMonth month = YearMonth.from(transaction.getTransactionDate());
+            BigDecimal points = rewardCalculator.calculate(transaction.getAmount());
+            pointsByMonth.merge(month, points, BigDecimal::add);
         }
 
         List<MonthlyReward> monthlyRewards = pointsByMonth.entrySet()
@@ -55,9 +56,9 @@ public class RewardServiceImpl implements RewardService {
                 .map(entry -> new MonthlyReward(entry.getKey(), entry.getValue()))
                 .toList();
 
-        long totalPoints = monthlyRewards.stream()
-                .mapToLong(MonthlyReward::points)
-                .sum();
+        BigDecimal totalPoints = monthlyRewards.stream()
+                .map(MonthlyReward::points)
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
 
         return new RewardResponse(customerId, monthlyRewards, totalPoints);
     }

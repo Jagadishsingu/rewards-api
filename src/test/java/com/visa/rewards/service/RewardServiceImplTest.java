@@ -1,5 +1,6 @@
 package com.visa.rewards.service;
 
+import com.visa.rewards.dto.MonthlyReward;
 import com.visa.rewards.dto.RewardResponse;
 import com.visa.rewards.model.Transaction;
 import com.visa.rewards.repository.TransactionRepository;
@@ -11,10 +12,10 @@ import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.time.YearMonth;
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
@@ -31,21 +32,22 @@ class RewardServiceImplTest {
 
     @Test
     void shouldAggregatePointsByMonthAndCalculateTotal() {
-        var june = new Transaction("CUST001", new BigDecimal("120"), LocalDate.of(2026, 6, 10));
-        var july = new Transaction("CUST001", new BigDecimal("150"), LocalDate.of(2026, 7, 10));
+        var june = new Transaction("CUST001", new BigDecimal("120.00"), LocalDate.of(2026, 6, 10));
+        var july = new Transaction("CUST001", new BigDecimal("150.00"), LocalDate.of(2026, 7, 10));
 
         when(repository.findByCustomerIdOrderByTransactionDateAsc("CUST001"))
                 .thenReturn(List.of(june, july));
-        when(calculator.calculate(new BigDecimal("120"))).thenReturn(90L);
-        when(calculator.calculate(new BigDecimal("150"))).thenReturn(150L);
+        when(calculator.calculate(new BigDecimal("120.00"))).thenReturn(new BigDecimal("90.00"));
+        when(calculator.calculate(new BigDecimal("150.00"))).thenReturn(new BigDecimal("150.00"));
 
         RewardResponse response = service.getRewards("CUST001");
 
         assertEquals("CUST001", response.customerId());
-        assertEquals(2, response.monthlyRewards().size());
-        assertEquals(90, response.monthlyRewards().get(0).points());
-        assertEquals(150, response.monthlyRewards().get(1).points());
-        assertEquals(240, response.totalPoints());
+        assertEquals(List.of(
+                new MonthlyReward(YearMonth.of(2026, 6), new BigDecimal("90.00")),
+                new MonthlyReward(YearMonth.of(2026, 7), new BigDecimal("150.00"))
+        ), response.monthlyRewards());
+        assertEquals(new BigDecimal("240.00"), response.totalPoints());
     }
 
     @Test
@@ -56,7 +58,7 @@ class RewardServiceImplTest {
         RewardResponse response = service.getRewards("UNKNOWN");
 
         assertEquals("UNKNOWN", response.customerId());
-        assertEquals(0, response.monthlyRewards().size());
-        assertEquals(0, response.totalPoints());
+        assertEquals(List.of(), response.monthlyRewards());
+        assertEquals(BigDecimal.ZERO, response.totalPoints());
     }
 }

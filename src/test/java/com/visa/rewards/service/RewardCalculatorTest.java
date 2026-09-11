@@ -11,33 +11,57 @@ class RewardCalculatorTest {
     private final RewardCalculator calculator = new RewardCalculator();
 
     @Test
-    void shouldReturnZeroForAmountAtOrBelowFifty() {
-        assertEquals(0, calculator.calculate(new BigDecimal("50.00")));
-        assertEquals(0, calculator.calculate(new BigDecimal("49.99")));
+    void shouldReturnZeroForAmountAtFiftyDollars() {
+        assertEquals(BigDecimal.ZERO, calculator.calculate(new BigDecimal("50.00")));
     }
 
     @Test
-    void shouldCalculateOnePointPerDollarBetweenFiftyAndOneHundred() {
-        assertEquals(10, calculator.calculate(new BigDecimal("60.00")));
-        assertEquals(50, calculator.calculate(new BigDecimal("100.00")));
+    void shouldReturnZeroForAmountBelowFiftyDollars() {
+        assertEquals(BigDecimal.ZERO, calculator.calculate(new BigDecimal("49.99")));
     }
 
     @Test
-    void shouldCalculateTwoPointsPerDollarAboveOneHundred() {
-        assertEquals(90, calculator.calculate(new BigDecimal("120.00")));
-        assertEquals(250, calculator.calculate(new BigDecimal("200.00")));
+    void shouldCalculateTenPointsForSixtyDollarPurchase() {
+        assertEquals(new BigDecimal("10.00"), calculator.calculate(new BigDecimal("60.00")));
     }
 
     @Test
-    void shouldIgnoreFractionalDollars() {
-        assertEquals(10, calculator.calculate(new BigDecimal("60.99")));
-        assertEquals(90, calculator.calculate(new BigDecimal("120.99")));
+    void shouldCalculateFiftyPointsForOneHundredDollarPurchase() {
+        assertEquals(new BigDecimal("50.00"), calculator.calculate(new BigDecimal("100.00")));
     }
 
     @Test
-    void shouldReturnZeroForNullOrNonPositiveAmount() {
-        assertEquals(0, calculator.calculate(null));
-        assertEquals(0, calculator.calculate(BigDecimal.ZERO));
-        assertEquals(0, calculator.calculate(new BigDecimal("-10.00")));
+    void shouldCalculateNinetyPointsForOneHundredTwentyDollarPurchase() {
+        assertEquals(new BigDecimal("90.00"), calculator.calculate(new BigDecimal("120.00")));
+    }
+
+    @Test
+    void shouldCalculateTwoHundredFiftyPointsForTwoHundredDollarPurchase() {
+        assertEquals(new BigDecimal("250.00"), calculator.calculate(new BigDecimal("200.00")));
+    }
+
+    @Test
+    void shouldPreservePositiveFractionalDollarPrecisionAtSixtyNinetyNine() {
+        assertEquals(new BigDecimal("10.99"), calculator.calculate(new BigDecimal("60.99")));
+    }
+
+    @Test
+    void shouldPreservePositiveFractionalDollarPrecisionAboveOneHundred() {
+        assertEquals(new BigDecimal("91.98"), calculator.calculate(new BigDecimal("120.99")));
+    }
+
+    @Test
+    void shouldReturnZeroForNullAmount() {
+        assertEquals(BigDecimal.ZERO, calculator.calculate(null));
+    }
+
+    @Test
+    void shouldReturnZeroForZeroAmount() {
+        assertEquals(BigDecimal.ZERO, calculator.calculate(BigDecimal.ZERO));
+    }
+
+    @Test
+    void shouldReturnZeroForNegativeAmount() {
+        assertEquals(BigDecimal.ZERO, calculator.calculate(new BigDecimal("-10.00")));
     }
 }

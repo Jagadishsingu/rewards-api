@@ -1,36 +1,48 @@
 # Rewards API
 
-Spring Boot REST API for calculating customer reward points over a three-month transaction period.
+This project is a small Spring Boot REST API for calculating reward points for a customer based on that customer's transaction history.
 
-## Business rules
+## What the implementation does
 
-For each transaction:
-
-- $50 or less: 0 points
-- Amount over $50 up to $100: 1 point for every dollar over $50
-- Amount over $100: 50 points for the $50-$100 band, plus 2 points for every dollar over $100
-
-Examples:
-
-| Transaction | Points |
-|---:|---:|
-| $40 | 0 |
-| $50 | 0 |
-| $60 | 10 |
-| $100 | 50 |
-| $120 | 90 |
-| $150 | 150 |
-| $200 | 250 |
-
-## API
-
-### Get rewards for a customer
+The application exposes a single endpoint:
 
 ```http
 GET /api/rewards/{customerId}
 ```
 
-Example:
+It returns a reward summary for the given customer ID. The response contains:
+
+- customerId
+- monthlyRewards: per-month totals in the order they first appear in the transaction data
+- totalPoints: the sum of all monthly reward points
+
+The endpoint is backed by Spring Data JPA and an in-memory H2 database.
+
+## Business rules
+
+The reward calculation matches the current implementation in `RewardCalculator`:
+
+- amounts <= 50: 0 points
+- amounts between 50 and 100: 1 point per dollar above 50
+- amounts above 100: 50 points for the 50-100 band + 2 points per dollar above 100
+
+Examples:
+
+| Amount | Points |
+|---:|---:|
+| $40.00 | 0 |
+| $50.00 | 0 |
+| $60.00 | 10 |
+| $100.00 | 50 |
+| $120.00 | 90 |
+| $150.00 | 150 |
+| $200.00 | 250 |
+
+## API behavior
+
+### Successful lookup
+
+Example request:
 
 ```bash
 curl http://localhost:8080/api/rewards/CUST001
@@ -52,54 +64,76 @@ Example response:
     },
     {
       "month": "2026-08",
-      "points": 50
+      "points": 150
     }
   ],
-  "totalPoints": 470
+  "totalPoints": 570
 }
 ```
 
-### Error response
+### Customer with no transactions
 
-Unknown customer:
+A valid customer with no transaction history is treated as a successful request with zero rewards rather than as a not found error.
 
-```http
-404 Not Found
-```
+Example response:
 
 ```json
 {
-  "timestamp": "2026-08-28T18:30:00Z",
-  "status": 404,
-  "error": "Customer not found",
-  "message": "No transactions found for customer 'UNKNOWN'",
-  "path": "/api/rewards/UNKNOWN"
+  "customerId": "CUST999",
+  "monthlyRewards": [],
+  "totalPoints": 0
 }
 ```
 
-## Run
+### Validation failures
+
+The controller validates the `customerId` path variable. Invalid values return a structured 400 response.
+
+Supported format constraints in the current code:
+
+- not blank
+- length between 2 and 50 characters
+- only letters, numbers, underscores, and hyphens are allowed
+
+Example error body:
+
+```json
+{
+  "timestamp": "2026-09-11T00:00:00Z",
+  "status": 400,
+  "error": "Validation failed",
+  "message": "Customer ID must not be blank",
+  "path": "/api/rewards/ "
+}
+```
+
+## Run locally
 
 Requires Java 21 and Maven.
 
 ```bash
-mvn clean test
+mvn test
 mvn spring-boot:run
 ```
 
 Or:
 
 ```bash
-mvn clean package
+mvn package
 java -jar target/rewards-api-0.0.1-SNAPSHOT.jar
 ```
 
-H2 console is available at:
+## Local data and tooling
+
+The application includes a `DataInitializer` that seeds sample transactions for demo customers at startup.
+
+H2 console:
 
 ```text
 http://localhost:8080/h2-console
 ```
 
-JDBC URL:
+H2 JDBC URL:
 
 ```text
 jdbc:h2:mem:rewardsdb
@@ -107,14 +141,14 @@ jdbc:h2:mem:rewardsdb
 
 Username: `sa`
 
-Password: blank.
+Password: blank
 
-## Design notes
+## Known limitations
 
-- `BigDecimal` is used for money instead of `double`.
-- Reward calculation is isolated in `RewardCalculator`, making the business rule easy to unit test.
-- Service layer owns aggregation/business orchestration.
-- Repository only handles persistence.
-- DTOs prevent persistence entities from leaking through the REST API.
-- Validation and a global exception handler provide consistent API errors.
-- Integration tests exercise the real Spring context, H2 database, repository, service, and controller.
+- This API supports only one endpoint: `GET /api/rewards/{customerId}`.
+- There is no POST or request-body lookup endpoint in the current implementation.
+- There is no customer creation, update, or delete flow.
+- There is no authentication or authorization.
+- The database is in-memory H2 and is reset when the application restarts.
+- The result is based only on transaction history already stored in the database; there is no external API, file import, or batch loader.
+- Invalid customer IDs return 400 responses; the application does not classify missing customers as a 404 case.
