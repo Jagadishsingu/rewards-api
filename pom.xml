@@ -11,7 +11,7 @@
         <relativePath/>
     </parent>
 
-    <groupId>com.example</groupId>
+    <groupId>com.visa</groupId>
     <artifactId>rewards-api</artifactId>
     <version>0.0.1-SNAPSHOT</version>
     <name>rewards-api</name>
